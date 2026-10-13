@@ -14,7 +14,7 @@ export const storefrontDict: AllDicts = {
 
     's.hero.eyebrow': 'Premium Nursery • Фарғона водийси',
     's.hero.title1': 'Водийдан узилган',
-    's.hero.title2': 'янги узилган атиргуллар',
+    's.hero.title2': 'атиргуллар',
     's.hero.subtitle':
       'Тўғридан-тўғри кўчатдан — тўй, совға ва ҳар кунлик қувонч учун. Каталогдан танланг, саватга қўшинг.',
     's.hero.catalogCta': 'Каталогни кўриш',
@@ -112,7 +112,7 @@ export const storefrontDict: AllDicts = {
 
     's.hero.eyebrow': "Premium Nursery • Farg'ona vodiysi",
     's.hero.title1': 'Vodiydan uzilgan',
-    's.hero.title2': 'yangi uzilgan atirgullar',
+    's.hero.title2': 'atirgullar',
     's.hero.subtitle':
       "To'g'ridan-to'g'ri ko'chatdan — to'y, sovg'a va har kunlik quvonch uchun. Katalogdan tanlang, savatga qo'shing.",
     's.hero.catalogCta': "Katalogni ko'rish",
@@ -209,8 +209,8 @@ export const storefrontDict: AllDicts = {
     's.header.contacts': 'Контакты',
 
     's.hero.eyebrow': 'Premium Nursery • Ферганская долина',
-    's.hero.title1': 'Свежесрезанные',
-    's.hero.title2': 'розы из Долины',
+    's.hero.title1': 'Розы',
+    's.hero.title2': 'из Долины',
     's.hero.subtitle':
       'Напрямую с плантации — для свадеб, подарков и радости каждый день. Выберите в каталоге и добавьте в корзину.',
     's.hero.catalogCta': 'Смотреть каталог',

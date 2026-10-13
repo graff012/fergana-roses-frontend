@@ -27,7 +27,9 @@ const AdminLogin = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!formData.phoneNumber.trim() || !formData.password) {
+    const digits = formData.phoneNumber.replace(/\D/g, '');
+    // Accept 9 digits (with +998 shown fixed) or full 12-digit format on paste.
+    if ((!/^\d{9}$/.test(digits) && !/^998\d{9}$/.test(digits)) || !formData.password) {
       setError(t('a.login.fillAll'));
       return;
     }
@@ -122,16 +124,22 @@ const AdminLogin = () => {
             >
               {t('a.login.phoneLabel')}
             </label>
-            <input
-              type="text"
-              id="phoneNumber"
-              name="phoneNumber"
-              value={formData.phoneNumber}
-              onChange={handleChange}
-              placeholder={t('a.login.phonePlaceholder')}
-              className="w-full border border-[#e7d6e0] rounded-lg py-3 px-4 bg-white text-black focus:outline-none focus:ring-2 focus:ring-[#f2b5d4] focus:border-transparent transition"
-              required
-            />
+            <div className="flex items-stretch border border-[#e7d6e0] rounded-lg bg-white focus-within:ring-2 focus-within:ring-[#f2b5d4] focus-within:border-transparent transition overflow-hidden">
+              <span className="flex items-center px-4 bg-gray-50 text-gray-700 font-semibold border-r border-[#e7d6e0] select-none">
+                +998
+              </span>
+              <input
+                type="tel"
+                inputMode="numeric"
+                id="phoneNumber"
+                name="phoneNumber"
+                value={formData.phoneNumber}
+                onChange={handleChange}
+                placeholder="91 111 66 92"
+                className="w-full py-3 px-4 bg-white text-black focus:outline-none"
+                required
+              />
+            </div>
           </div>
 
           <div>

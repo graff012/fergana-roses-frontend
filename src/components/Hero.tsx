@@ -1,13 +1,35 @@
 import { FaArrowRightLong, FaCheck, FaStar } from "react-icons/fa6";
 import { Link, useLocation, useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
 import { useLanguage } from "../contexts/LanguageContext";
+import { API_URL } from "../config";
 
 const Hero = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { t } = useLanguage();
+  const [realNames, setRealNames] = useState<string[]>([]);
 
-  const MARQUEE_ITEMS = [
+  // Real category names added by the owner — shown in the marquee when available.
+  useEffect(() => {
+    let cancelled = false;
+    fetch(`${API_URL}/categories`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (cancelled) return;
+        const list = Array.isArray(data) ? data : data?.categories || [];
+        const names = list.map((c: { name?: string }) => c?.name).filter(Boolean);
+        if (names.length > 0) setRealNames(names);
+      })
+      .catch(() => {
+        // marquee falls back to static sample names
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const FALLBACK_MARQUEE = [
     t('s.hero.marquee.0'),
     t('s.hero.marquee.1'),
     t('s.hero.marquee.2'),
@@ -17,6 +39,8 @@ const Hero = () => {
     t('s.hero.marquee.6'),
     t('s.hero.marquee.7'),
   ];
+
+  const MARQUEE_ITEMS = realNames.length > 0 ? realNames : FALLBACK_MARQUEE;
 
   const TRUST_ITEMS = [
     t('s.hero.trust1'),
