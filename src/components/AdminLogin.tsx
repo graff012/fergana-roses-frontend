@@ -17,9 +17,27 @@ const AdminLogin = () => {
   const { login } = useAdminAuth();
   const navigate = useNavigate();
 
+  // Formats as groups 2-3-2-2 while typing: 91 111 66 92
+  const formatPhoneDisplay = (raw: string): string => {
+    let digits = raw.replace(/\D/g, '');
+    if (digits.startsWith('998') && digits.length > 9) {
+      digits = digits.slice(-9);
+    }
+    digits = digits.slice(0, 9);
+    const parts: string[] = [];
+    if (digits.length > 0) parts.push(digits.slice(0, 2));
+    if (digits.length > 2) parts.push(digits.slice(2, 5));
+    if (digits.length > 5) parts.push(digits.slice(5, 7));
+    if (digits.length > 7) parts.push(digits.slice(7, 9));
+    return parts.join(' ');
+  };
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    setFormData(prev => ({
+      ...prev,
+      [name]: name === 'phoneNumber' ? formatPhoneDisplay(value) : value,
+    }));
     // Clear error when user starts typing
     if (error) setError("");
   };
@@ -135,7 +153,7 @@ const AdminLogin = () => {
                 name="phoneNumber"
                 value={formData.phoneNumber}
                 onChange={handleChange}
-                placeholder="91 111 66 92"
+                autoComplete="tel"
                 className="w-full py-3 px-4 bg-white text-black focus:outline-none"
                 required
               />
