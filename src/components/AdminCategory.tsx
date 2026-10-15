@@ -127,7 +127,7 @@ export const AdminCategory = ({ makeAuthenticatedRequest }: AdminCategoryProps) 
 
   return (
     <section className="flex items-center justify-center py-8 px-4 sm:py-10">
-      <div className="bg-[#fff4f7] rounded-xl shadow-lg w-full max-w-[600px] p-6 sm:p-8">
+      <div className="bg-[#fff4f7] rounded-xl shadow-lg w-full max-w-[760px] p-6 sm:p-8">
         <h2 className="text-xl sm:text-2xl font-bold mb-6 text-black text-center sm:text-left">
           {t('a.category.title')}
         </h2>
@@ -157,8 +157,8 @@ export const AdminCategory = ({ makeAuthenticatedRequest }: AdminCategoryProps) 
         <div className="bg-white rounded-lg shadow border border-[#f0e5ef] overflow-hidden">
           {/* Header - Hidden on mobile */}
           <div className="hidden sm:flex bg-[#fdf6f9] border-b border-[#f0e5ef] font-semibold text-black px-6 py-3">
-            <div className="w-3/4">{t('a.category.nameHeader')}</div>
-            <div className="w-1/4">{t('a.category.actionsHeader')}</div>
+            <div className="flex-1 min-w-0">{t('a.category.nameHeader')}</div>
+            <div className="flex-shrink-0 text-right">{t('a.category.actionsHeader')}</div>
           </div>
 
           {/* Mobile-friendly List (Card Style on small screens) */}
@@ -205,20 +205,20 @@ export const AdminCategory = ({ makeAuthenticatedRequest }: AdminCategoryProps) 
                   key={category.id}
                   className="flex items-center px-6 py-4 hover:bg-[#fff7fa] transition"
                 >
-                  <div className="w-3/4 text-black font-medium truncate">
+                  <div className="flex-1 min-w-0 text-black font-medium truncate pr-4">
                     {category.name}
                   </div>
-                  <div className="w-1/4 flex gap-x-2 sm:gap-x-3">
+                  <div className="flex-shrink-0 flex gap-x-2 sm:gap-x-3 justify-end">
                     <button
                       onClick={() => handleEdit(category)}
-                      className="text-sm bg-[#fdf6f9] hover:bg-[#ffe3f0] text-black px-3 py-1 rounded transition"
+                      className="text-sm bg-[#fdf6f9] hover:bg-[#ffe3f0] text-black px-3 py-1 rounded transition whitespace-nowrap"
                       title={t('a.category.edit')}
                     >
                       {t('a.category.edit')}
                     </button>
                     <button
                       onClick={() => handleDelete(category.id)}
-                      className="text-sm bg-[#ffeef0] hover:bg-red-200 text-[#e57373] px-3 py-1 rounded transition"
+                      className="text-sm bg-[#ffeef0] hover:bg-red-200 text-[#e57373] px-3 py-1 rounded transition whitespace-nowrap"
                       title={t('a.category.delete')}
                     >
                       {t('a.category.delete')}

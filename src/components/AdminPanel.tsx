@@ -48,6 +48,14 @@ export const AdminPanel = () => {
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [flowerIdToDelete, setFlowerIdToDelete] = useState<string | null>(null);
 
+  // Odoo-style bulk edit: select rows, set one value, apply to all selected
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkPrice, setBulkPrice] = useState("");
+  const [bulkStock, setBulkStock] = useState("");
+  const [bulkCategoryId, setBulkCategoryId] = useState("");
+  const [bulkApplying, setBulkApplying] = useState(false);
+  const [bulkProgress, setBulkProgress] = useState<string | null>(null);
+
   // Profile state
   type AdminProfile = {
     id: string;
@@ -658,6 +666,94 @@ export const AdminPanel = () => {
     setFlowerIdToDelete(null);
   };
 
+  // Bulk selection helpers
+  const toggleSelect = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedIds.size === flowers.length && flowers.length > 0) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(flowers.map((f) => f.id)));
+    }
+  };
+
+  const clearBulk = () => {
+    setSelectedIds(new Set());
+    setBulkPrice("");
+    setBulkStock("");
+    setBulkCategoryId("");
+    setBulkProgress(null);
+  };
+
+  // Apply one value to all selected rows (only filled fields are sent)
+  const handleBulkApply = async () => {
+    const ids = Array.from(selectedIds);
+    if (ids.length === 0) return;
+
+    const hasPrice = bulkPrice.trim() !== "";
+    const hasStock = bulkStock.trim() !== "";
+    const hasCategory = bulkCategoryId !== "";
+
+    if (!hasPrice && !hasStock && !hasCategory) {
+      alert(t('a.panel.bulkNeedOne'));
+      return;
+    }
+    if (hasPrice) {
+      const p = parseFloat(bulkPrice);
+      if (isNaN(p) || p <= 0) {
+        alert(t('a.panel.invalidPrice'));
+        return;
+      }
+    }
+    if (hasStock) {
+      const s = parseInt(bulkStock);
+      if (isNaN(s) || s < 0) {
+        alert(t('a.panel.invalidStock'));
+        return;
+      }
+    }
+
+    if (!window.confirm(`${ids.length} ${t('a.panel.bulkConfirm')}`)) return;
+
+    setBulkApplying(true);
+    let ok = 0;
+    let fail = 0;
+    for (let i = 0; i < ids.length; i++) {
+      setBulkProgress(`${i + 1}/${ids.length}`);
+      const fd = new FormData();
+      if (hasPrice) fd.append("price", bulkPrice.trim());
+      if (hasStock) fd.append("stock", String(parseInt(bulkStock.trim())));
+      if (hasCategory) fd.append("categoryId", bulkCategoryId);
+      try {
+        const res = await makeAuthenticatedRequest(`${API_URL}/flowers/${ids[i]}`, {
+          method: "PUT",
+          body: fd,
+        });
+        if (res.ok) ok++;
+        else {
+          fail++;
+          console.error("Bulk update failed for", ids[i], res.status);
+        }
+      } catch (err) {
+        fail++;
+        console.error("Bulk update error for", ids[i], err);
+      }
+    }
+    setBulkApplying(false);
+    setBulkProgress(null);
+    await fetchFlowers();
+    setSelectedIds(new Set());
+    if (fail === 0) alert(`${ok} ${t('a.panel.bulkDone')}`);
+    else alert(`${t('a.panel.bulkFail')} (${ok} ok / ${fail} fail)`);
+  };
+
   // Effects
   useEffect(() => {
     console.log('Active tab changed to:', activeTab);
@@ -935,13 +1031,86 @@ export const AdminPanel = () => {
                 </div>
               </div>
 
+              {/* Odoo-style bulk edit bar */}
+              {flowers.length > 0 && (
+                <div className="bg-white p-4 sm:p-5 rounded-lg shadow border border-[#f0e5ef]">
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-base font-semibold text-black">
+                      {t('a.panel.bulkTitle')}
+                    </h3>
+                    <span className="text-sm text-gray-600">
+                      {t('a.panel.selected')}: {selectedIds.size}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+                    <input
+                      type="number"
+                      min="0"
+                      value={bulkPrice}
+                      onChange={(e) => setBulkPrice(e.target.value)}
+                      placeholder={t('a.panel.bulkPricePh')}
+                      disabled={bulkApplying}
+                      className="w-full border border-[#e7d6e0] rounded py-2 px-3 bg-white text-black focus:outline-none focus:ring-2 focus:ring-[#f2b5d4] disabled:bg-gray-100"
+                    />
+                    <input
+                      type="number"
+                      min="0"
+                      step="1"
+                      value={bulkStock}
+                      onChange={(e) => setBulkStock(e.target.value)}
+                      placeholder={t('a.panel.bulkStockPh')}
+                      disabled={bulkApplying}
+                      className="w-full border border-[#e7d6e0] rounded py-2 px-3 bg-white text-black focus:outline-none focus:ring-2 focus:ring-[#f2b5d4] disabled:bg-gray-100"
+                    />
+                    <select
+                      value={bulkCategoryId}
+                      onChange={(e) => setBulkCategoryId(e.target.value)}
+                      disabled={bulkApplying}
+                      className="w-full border border-[#e7d6e0] rounded py-2 px-3 bg-white text-black focus:outline-none focus:ring-2 focus:ring-[#f2b5d4] disabled:bg-gray-100"
+                    >
+                      <option value="">{t('a.panel.bulkCategoryPh')}</option>
+                      {categories.map((c) => (
+                        <option key={c.id} value={c.id}>{c.name}</option>
+                      ))}
+                    </select>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={handleBulkApply}
+                        disabled={bulkApplying || selectedIds.size === 0}
+                        className="flex-1 bg-[#f2b5d4] hover:bg-[#e7a3c4] disabled:bg-gray-300 disabled:cursor-not-allowed text-black font-semibold py-2 px-4 rounded shadow transition whitespace-nowrap"
+                      >
+                        {bulkApplying && bulkProgress
+                          ? `${t('a.panel.saving')} ${bulkProgress}`
+                          : t('a.panel.bulkApply')}
+                      </button>
+                      <button
+                        onClick={clearBulk}
+                        disabled={bulkApplying}
+                        className="bg-gray-200 hover:bg-gray-300 disabled:bg-gray-100 text-black font-semibold py-2 px-4 rounded shadow transition"
+                      >
+                        {t('a.panel.bulkClear')}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* Flower List */}
               <div className="bg-white rounded-lg shadow border border-[#f0e5ef] overflow-hidden">
-                <div className="hidden sm:flex bg-[#fdf6f9] border-b border-[#f0e5ef] font-semibold text-black px-6 py-3">
-                  <div className="w-1/4">{t('a.panel.colFlower')}</div>
-                  <div className="w-1/4">{t('a.panel.colSizeSmell')}</div>
-                  <div className="w-1/4">{t('a.panel.colHeight')}</div>
-                  <div className="w-1/4">{t('a.panel.colActions')}</div>
+                <div className="hidden sm:flex items-center bg-[#fdf6f9] border-b border-[#f0e5ef] font-semibold text-black px-6 py-3">
+                  <div className="w-8 shrink-0">
+                    <input
+                      type="checkbox"
+                      checked={flowers.length > 0 && selectedIds.size === flowers.length}
+                      onChange={toggleSelectAll}
+                      title={t('a.panel.selectAll')}
+                      className="w-4 h-4 accent-pink-500 cursor-pointer"
+                    />
+                  </div>
+                  <div className="flex-1 min-w-0">{t('a.panel.colFlower')}</div>
+                  <div className="flex-1 min-w-0">{t('a.panel.colSizeSmell')}</div>
+                  <div className="flex-1 min-w-0">{t('a.panel.colHeight')}</div>
+                  <div className="flex-1 min-w-0">{t('a.panel.colActions')}</div>
                 </div>
 
                 {/* Mobile View */}
@@ -954,6 +1123,12 @@ export const AdminPanel = () => {
                       return (
                         <div key={flower.id} className="border-b border-[#f0e5ef] p-4 hover:bg-[#fff7fa] transition">
                           <div className="flex items-center gap-x-3 mb-2">
+                            <input
+                              type="checkbox"
+                              checked={selectedIds.has(flower.id)}
+                              onChange={() => toggleSelect(flower.id)}
+                              className="w-4 h-4 accent-pink-500 cursor-pointer shrink-0"
+                            />
                             {flower.imgUrl && (
                               <img
                                 src={imageUrl}
@@ -1014,9 +1189,17 @@ export const AdminPanel = () => {
                       return (
                         <div
                           key={flower.id}
-                          className="flex items-center px-6 py-4 hover:bg-[#fff7fa] transition"
+                          className={`flex items-center px-6 py-4 hover:bg-[#fff7fa] transition ${selectedIds.has(flower.id) ? 'bg-[#fff0f6]' : ''}`}
                         >
-                          <div className="w-1/4 flex items-center gap-x-3 text-black">
+                          <div className="w-8 shrink-0">
+                            <input
+                              type="checkbox"
+                              checked={selectedIds.has(flower.id)}
+                              onChange={() => toggleSelect(flower.id)}
+                              className="w-4 h-4 accent-pink-500 cursor-pointer"
+                            />
+                          </div>
+                          <div className="flex-1 min-w-0 flex items-center gap-x-3 text-black">
                             {flower.imgUrl && (
                               <img
                                 src={imageUrl}
@@ -1030,12 +1213,12 @@ export const AdminPanel = () => {
                               <div className="text-sm text-gray-600">${flower.price}</div>
                             </div>
                           </div>
-                          <div className="w-1/4 text-black">
+                          <div className="flex-1 min-w-0 text-black">
                             <div>{flower.flowerSize || "–"}</div>
                             <div className="text-sm text-gray-600">{getSmellDisplayText(flower.smell)}</div>
                           </div>
-                          <div className="w-1/4 text-black">{flower.height || "–"}</div>
-                          <div className="w-1/4 text-black">
+                          <div className="flex-1 min-w-0 text-black">{flower.height || "–"}</div>
+                          <div className="flex-1 min-w-0 text-black">
                             <div>
                               {t('a.panel.stockName')} {typeof (flower as any).stock === 'number' ? flower.stock : 0}
                               {((flower as any).stock ?? 0) === 0 && (
@@ -1043,16 +1226,16 @@ export const AdminPanel = () => {
                               )}
                             </div>
                           </div>
-                          <div className="w-1/4 flex gap-x-2">
+                          <div className="flex-1 min-w-0 flex gap-x-2">
                             <button
                               onClick={() => handleEditClick(flower)}
-                              className="text-sm bg-[#fdf6f9] hover:bg-[#ffe3f0] text-black px-3 py-1 rounded transition"
+                              className="text-sm bg-[#fdf6f9] hover:bg-[#ffe3f0] text-black px-3 py-1 rounded transition whitespace-nowrap"
                             >
                               {t('a.panel.edit')}
                             </button>
                             <button
                               onClick={() => handleDelete(flower.id)}
-                              className="text-sm bg-[#ffeef0] hover:bg-red-200 text-[#e57373] px-3 py-1 rounded transition"
+                              className="text-sm bg-[#ffeef0] hover:bg-red-200 text-[#e57373] px-3 py-1 rounded transition whitespace-nowrap"
                             >
                               {t('a.panel.delete')}
                             </button>
